@@ -1,0 +1,56 @@
+# =============================================================================
+# BitBox/docker-compose.yml
+#
+# Combined orchestrator: starts both the Portal (PHP/Apache) and Planner
+# (Python/FastAPI) containers together.
+#
+# Each project's Dockerfile lives in its own subfolder.
+# For developing a single project in isolation, use the docker-compose.yml
+# inside portal/intranet/ or planner/ respectively.
+#
+# Usage (from the BitBox/ folder):
+#   docker-compose up --build    # first build or after Dockerfile changes
+#   docker-compose up -d         # start both in background
+#   docker-compose logs -f       # tail logs from both containers
+#   docker-compose down          # stop and remove both containers
+#
+# Services:
+#   portal   → http://localhost:8081  (PHP 8.3 + Apache)
+#   planner  → http://localhost:8082  (Python FastAPI + OR-Tools)
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # BitBox Portal  (PHP 8.3 + Apache, port 8081)
+  # ---------------------------------------------------------------------------
+  portal:
+    build:
+      context: ./portal/intranet
+      dockerfile: Dockerfile
+    container_name: bitbox_portal
+    ports:
+      - "8081:80"
+    volumes:
+      - ./portal/intranet/wwwroot:/var/www/html   # live-mount for dev
+    env_file: ./portal/intranet/.env
+    extra_hosts:
+      - "BB-DC01:172.16.1.2"
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # BitBox Planner  (Python FastAPI + OR-Tools, port 8082)
+  # ---------------------------------------------------------------------------
+  planner:
+    build:
+      context: ./planner
+      dockerfile: Dockerfile
+    container_name: bitbox_planner
+    ports:
+      - "8082:8000"
+    env_file: ./planner/.env
+    extra_hosts:
+      - "BB-DC01:172.16.1.2"
+    depends_on:
+      - portal
+    restart: unless-stopped
