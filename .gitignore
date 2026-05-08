@@ -1,6 +1,8 @@
 # Sub-repositories — each has its own git repo, do not track here
 portal/
 planner/
+purchasing/
+erp_query_engine/
 
 # Environment files with secrets
 .env

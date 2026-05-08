@@ -1,39 +1,45 @@
 # =============================================================================
 # BitBox/docker-compose.yml
 #
-# Combined orchestrator: starts both the Portal (PHP/Apache) and Planner
-# (Python/FastAPI) containers together.
+# Combined orchestrator: starts Portal, Planner, and Purchasing containers.
 #
 # Each project's Dockerfile lives in its own subfolder.
 # For developing a single project in isolation, use the docker-compose.yml
-# inside portal/intranet/ or planner/ respectively.
+# inside portal/, planner/, or purchasing/ respectively.
 #
 # Usage (from the BitBox/ folder):
 #   docker-compose up --build    # first build or after Dockerfile changes
-#   docker-compose up -d         # start both in background
-#   docker-compose logs -f       # tail logs from both containers
-#   docker-compose down          # stop and remove both containers
+#   docker-compose up -d         # start all in background
+#   docker-compose logs -f       # tail logs from all containers
+#   docker-compose down          # stop and remove all containers
 #
 # Services:
-#   portal   → http://localhost:8081  (PHP 8.3 + Apache)
-#   planner  → http://localhost:8082  (Python FastAPI + OR-Tools)
+#   portal      → http://localhost:8081  (Python 3.12 FastAPI + uvicorn)
+#   planner     → http://localhost:8082  (Python FastAPI + OR-Tools)
+#   purchasing  → http://localhost:8084  (Python FastAPI)
+#
+# ERP Query Engine is a SEPARATE project (c:\Users\qlister\AI\erp_query_engine).
+# Start it independently from its own docker-compose.yml (port 8000 on the host).
+# The portal reaches it via host.docker.internal:8000 — set ERP_QUERY_URL in
+# portal/.env:  ERP_QUERY_URL=http://host.docker.internal:8000
 # =============================================================================
 
 services:
 
   # ---------------------------------------------------------------------------
-  # BitBox Portal  (PHP 8.3 + Apache, port 8081)
+  # BitBox Portal  (Python 3.12 FastAPI + uvicorn, port 8081)
   # ---------------------------------------------------------------------------
   portal:
     build:
-      context: ./portal/intranet
+      context: ./portal
       dockerfile: Dockerfile
     container_name: bitbox_portal
     ports:
       - "8081:80"
     volumes:
-      - ./portal/intranet/wwwroot:/var/www/html   # live-mount for dev
-    env_file: ./portal/intranet/.env
+      - ./portal/backend:/app/backend   # live-mount: Python changes without rebuild
+      - ./portal/static:/app/static     # live-mount: HTML/JS changes without rebuild
+    env_file: ./portal/.env
     extra_hosts:
       - "BB-DC01:172.16.1.2"
     restart: unless-stopped
@@ -48,7 +54,30 @@ services:
     container_name: bitbox_planner
     ports:
       - "8082:8000"
+    volumes:
+      - ./planner/backend:/app/backend   # live-mount: Python changes without rebuild
+      - ./planner/static:/app/static     # live-mount: JS/HTML changes without rebuild
     env_file: ./planner/.env
+    extra_hosts:
+      - "BB-DC01:172.16.1.2"
+    depends_on:
+      - portal
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # BitBox Purchasing  (Python FastAPI, port 8084)
+  # ---------------------------------------------------------------------------
+  purchasing:
+    build:
+      context: ./purchasing
+      dockerfile: Dockerfile
+    container_name: bitbox_purchasing
+    ports:
+      - "8084:8000"
+    volumes:
+      - ./purchasing/backend:/app/backend   # live-mount: Python changes without rebuild
+      - ./purchasing/static:/app/static     # live-mount: JS/HTML changes without rebuild
+    env_file: ./purchasing/.env
     extra_hosts:
       - "BB-DC01:172.16.1.2"
     depends_on:

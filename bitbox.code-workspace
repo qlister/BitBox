@@ -1,6 +1,8 @@
 {
   "folders": [
-    { "name": "portal", "path": "portal" },
-    { "name": "planner", "path": "planner" }
+    {
+      "name": "BitBox (umbrella)",
+      "path": "."
+    }
   ]
 }
