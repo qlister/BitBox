@@ -1,6 +1,6 @@
 # Portal Host Contract — Specification
 
-**Contract version: `1.0.0`** (semver — see "Versioning rules" below)
+**Contract version: `1.1.0`** (semver — see "Versioning rules" below)
 
 This document is the **canonical, authoritative spec** of the JavaScript
 interface between the BitBox Portal (the host) and the sub-apps that run
@@ -52,11 +52,11 @@ the host is older than the sub-app requires.
 
 ---
 
-## The `window.bitbox` surface (v1.0.0)
+## The `window.bitbox` surface (v1.1.0)
 
 ```js
 window.bitbox = {
-  contractVersion: "1.0.0",       // string, always present
+  contractVersion: "1.1.0",       // string, always present
   session:         { ... },
   env:             { ... },
   api:             { ... },
@@ -105,12 +105,21 @@ env: {
   environment: string,    // "dev" | "live" | "beta" | "test"
   version:     string,    // version of whichever app is providing the host (e.g. portal version, or planner version in standalone)
   isLive:      boolean,   // true iff database === "BITBOXMRP" AND environment !== "dev"
+  ready:       Promise,   // resolves once the values above have been populated from the host
 }
 ```
 
 This shape matches the existing `/api/insight/databaseName` portal endpoint
 and the planner's `/api/env`. `isLive` is a derived convenience for
 "should I make the navbar dark and warn before destructive actions?".
+
+**Critical invariant (MUST):** the values reported in `env.database` and
+`env.environment` MUST match the database the sub-app's backend is actually
+connected to. The pill in the header is the operator-visible report of this
+invariant — if it's wrong, every "is this dev or live?" judgement made by
+the operator that day is wrong. Implementations MUST guarantee no drift
+between the displayed value and the actual backend connection. See "Env
+handling" below for how each implementation does so.
 
 ### `api`
 
@@ -329,8 +338,93 @@ spec's changelog at the bottom.
 
 ---
 
+## Env handling
+
+This section formalises how the values that flow through `bitbox.env` are
+**produced** in each mode, and how implementations guarantee the
+"no-drift" invariant from the `env` section above. The contract is
+deliberately silent on file layout — implementations may use `.env` files,
+secrets managers, or any other source — but it does mandate the runtime
+behaviour each implementation MUST provide.
+
+### Standalone-mode hosts (MUST)
+
+A sub-app served directly on its own port (e.g. planner on 8082, purchasing
+on 8084) MUST expose a JSON endpoint:
+
+```
+GET /api/env  →  { "database": <string>,
+                   "environment": <string>,
+                   "version": <string> }
+```
+
+- `database` MUST be the database the sub-app's backend is currently
+  connected to. The simplest implementation is `os.getenv("DB_DATABASE")`,
+  read from the same environment as the actual SQL connection string. A
+  more defensive implementation queries `SELECT DB_NAME()` and returns
+  the live answer from the connection itself (the portal does this for
+  `/api/insight/databaseName`).
+- `environment` MUST be the value of the canonical `APP_ENV` env var
+  (`"dev"` / `"live"` / `"beta"`). Pre-1.1.0 sub-apps used per-app names
+  (`PLANNER_ENV`, `PURCHASING_ENV`) — those were renamed to `APP_ENV` in
+  the 1.1.0 sweep.
+- `version` MUST be the sub-app's own version string.
+
+The standalone shim populates `window.bitbox.env` from this endpoint at
+page load. The shim's lazy `env.ready` promise resolves when the fetch
+completes; pages that need accurate values before rendering MUST `await`
+it before reading `env.*`.
+
+### Integrated-mode hosts (MUST)
+
+The portal populates `window.bitbox.env` from its own `/api/insight/databaseName`
+endpoint, which queries the live SQL connection (`SELECT DB_NAME()`) and
+returns it alongside `version` and a normalised `environment` string.
+Whatever transport the host uses, the values reported via `bitbox.env`
+MUST reflect the database that the sub-app's *backend container* is
+actually connected to — not just the host's own connection.
+
+In practice, this means the integrated stack MUST wire a single `.env`
+into both the portal and every sub-app container, so the env vars all
+three processes read are identical. The `BitBox/docker-compose.yml`
+combined orchestrator achieves this with `env_file: ./portal/.env` on
+every service.
+
+### Canonical env-var names
+
+The following names MUST be used consistently across portal, planner,
+purchasing, and any future sub-app that wants its `.env` to be portable
+into the integrated stack:
+
+| Var               | Meaning                                                    |
+| ----------------- | ---------------------------------------------------------- |
+| `DB_SERVER`       | MSSQL hostname or IP                                       |
+| `DB_DATABASE`     | initial-catalog database name (drives `bitbox.env.database`) |
+| `DB_UID`          | SQL Server auth login                                      |
+| `DB_PWD`          | SQL Server auth password                                   |
+| `DB_DRIVER`       | ODBC driver name (sub-apps using pyodbc)                   |
+| `DB_TRUSTED`      | `"yes"` for Windows Auth, `"no"` for SQL auth              |
+| `DB_ENCRYPT`      | `"yes"` recommended                                        |
+| `DB_TRUST_CERT`   | `"yes"` required for self-signed BB-DC01 cert              |
+| `APP_ENV`         | `"dev"` / `"live"` / `"beta"` (drives `bitbox.env.environment`) |
+
+Other env vars (session secrets, log keys, sub-app-specific extras like
+`DB_PSCR_SQL_AUTH_*`) are not part of the contract — implementations may
+name them as they wish.
+
+---
+
 ## Changelog
 
+- **1.1.0** — additive. Adds `env.ready` to the documented `env` shape
+  (already present in both implementations since 1.0.0; now formalised).
+  Adds the **"Env handling"** section: standalone-mode hosts MUST expose
+  `GET /api/env` with the documented shape; integrated-mode hosts MUST
+  ensure backend and pill cannot diverge (and SHOULD use a single shared
+  `.env` for the combined stack). Standardises canonical env-var names —
+  notably `APP_ENV` (replacing per-app `PLANNER_ENV` / `PURCHASING_ENV`)
+  and `DB_DATABASE` / `DB_UID` / `DB_PWD` (portal renamed from `DB_NAME`
+  / `DB_USER` / `DB_USER_PASS`).
 - **1.0.0** — initial contract. `contractVersion`, `session`, `env`, `api`,
   `logger`, `barcodeScanner`, `nav`. Back-compat for `window.PLANNER_API_BASE`,
   `window.PURCHASING_API_BASE`, and the legacy `(clockNumber, baseUrl)`

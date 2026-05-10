@@ -203,7 +203,7 @@
     // -------------------------------------------------------------------------
 
     window.bitbox = {
-        contractVersion: '1.0.0',
+        contractVersion: '1.1.0',
         session:         session,
         env:             env,
         api:             api,

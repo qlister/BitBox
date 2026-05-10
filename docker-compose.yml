@@ -57,7 +57,22 @@ services:
     volumes:
       - ./planner/backend:/app/backend   # live-mount: Python changes without rebuild
       - ./planner/static:/app/static     # live-mount: JS/HTML changes without rebuild
-    env_file: ./planner/.env
+    # Two env files, layered. Later file wins for any duplicate key.
+    #   1. portal/.env   -- the SHARED source of truth for DB_DATABASE,
+    #                       APP_ENV, INTRANET_LOG_URL, LOG_API_KEY, etc.
+    #                       This is what guarantees the env / database pill
+    #                       in the planner UI matches the database the
+    #                       planner backend is actually connected to —
+    #                       both come from the same DB_DATABASE here.
+    #   2. planner/.env  -- planner-specific overrides. Notably DB_UID /
+    #                       DB_PWD = bitbox_svc (planner needs WRITE access
+    #                       to BitBoxPlanner.* which portal_user does not).
+    # See PORTAL_CONTRACT.md → "Env handling" for the contract requirement.
+    # When developing planner standalone, planner/docker-compose.yml uses
+    # planner/.env on its own (it's self-contained for that purpose).
+    env_file:
+      - ./portal/.env
+      - ./planner/.env
     extra_hosts:
       - "BB-DC01:172.16.1.2"
     depends_on:
@@ -77,7 +92,21 @@ services:
     volumes:
       - ./purchasing/backend:/app/backend   # live-mount: Python changes without rebuild
       - ./purchasing/static:/app/static     # live-mount: JS/HTML changes without rebuild
-    env_file: ./purchasing/.env
+    # Two env files, layered. Later file wins for any duplicate key.
+    #   1. portal/.env       -- SHARED source of truth for DB_DATABASE,
+    #                           APP_ENV, INTRANET_LOG_URL, LOG_API_KEY etc.
+    #   2. purchasing/.env   -- purchasing-specific overrides. Notably
+    #                           DB_UID / DB_PWD = bitbox_svc (write access
+    #                           to BitBoxPurchasing.*) and the
+    #                           DB_PSCR_SQL_AUTH_* `sa` workaround for
+    #                           PSCRInsertSDK (only honoured in live/beta
+    #                           — see purchasing/AGENTS.md → PSCR section).
+    # See PORTAL_CONTRACT.md → "Env handling" for the contract requirement.
+    # When developing purchasing standalone, purchasing/docker-compose.yml
+    # uses purchasing/.env on its own.
+    env_file:
+      - ./portal/.env
+      - ./purchasing/.env
     extra_hosts:
       - "BB-DC01:172.16.1.2"
     depends_on:
