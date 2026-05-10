@@ -140,6 +140,7 @@ file for the other modes needs the same change.
 
 ## Working conventions at this level
 
+- **PowerShell `curl` quirk:** Never use `curl` in PowerShell to test API endpoints (like `curl http://localhost:8081/api/insight/version`) because `curl` is an alias for `Invoke-WebRequest` which often hangs indefinitely waiting to parse the response stream. Always use `curl.exe` explicitly (e.g. `curl.exe -s http://localhost:8081/api/insight/version`).
 - **Don't commit** unless the user explicitly asks. The umbrella has its own
   git repo separate from the four sub-projects — when committing changes
   here, only the umbrella files (the workspace, contract, compose, shim,

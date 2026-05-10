@@ -70,8 +70,8 @@ into 123Insight via the SDK CLR procs); BoM Comparison Tool; staged-order
 basket reconciliation flow for Farnell.
 
 Stack: Python 3.12 / FastAPI / `pyodbc` / `openpyxl`. Plain JS + HTML
-frontend. Schema: `BitBoxPurchasing`. **Three deployment targets**: dev
-(SANDBOX), live (BITBOXMRP), beta (BITBOXMRP — staging code on live data).
+frontend. Schema: `BitBoxPurchasing`. **Two deployment targets**: dev
+(SANDBOX, standalone) and staging (BITBOXMRP, via the umbrella stack).
 
 Full docs: [`purchasing/AGENTS.md`](purchasing/AGENTS.md), [`purchasing/README.md`](purchasing/README.md).
 
@@ -137,12 +137,9 @@ the vendored copies directly — see [`portal-shim/README.md`](portal-shim/READM
 
 ## Port allocation across all BitBox tools
 
-- **8081** — portal (the only port operators see in normal use)
+- **8081** — full stack staging (portal routing to planner/purchasing on BITBOXMRP)
 - **8082** — planner dev (SANDBOX, amber navbar)
-- **8083** — planner live (BITBOXMRP, dark navbar) — separate container
 - **8084** — purchasing dev (SANDBOX, amber header)
-- **8085** — purchasing live (BITBOXMRP, dark header) — separate container
-- **8086** — purchasing beta (BITBOXMRP, **orange BETA badge** — staging code on live data)
 - **8000** — erp_query_engine (MCP `/mcp` + REST `/api/*`)
 
 LAN access from anywhere on the company network: `http://bb-14175.bitbox.local:<port>`
@@ -248,7 +245,7 @@ All sub-projects connect to the same MSSQL instance:
 
 - **Server:** `BB-DC01` / `172.16.1.2` (never use `INSIGHT-SERVER`, `localhost`
   — they will time out).
-- **Dev DB:** `SANDBOX`. **Live DB:** `BITBOXMRP` (production).
+- **Dev DB:** `SANDBOX`. **Prod DB:** `BITBOXMRP` (production).
 - **Schemas:** `BitBoxIntranet` (portal), `BitBoxPlanner` (planner +
   purchasing reads), `BitBoxPurchasing` (purchasing).
 - **Service logins:** `portal_user`, `bitbox_svc`, `erp_mcp_read` — all

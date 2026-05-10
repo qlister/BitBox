@@ -37,6 +37,12 @@
 (function () {
     'use strict';
 
+    if (window !== window.parent && window.parent.bitbox) {
+        window.bitbox = window.parent.bitbox;
+        console.log('[bitbox-shim] Adopted window.parent.bitbox from host iframe.');
+        return;
+    }
+
     if (window.bitbox) {
         // Already populated by some other host (or this shim was loaded twice).
         // Don't clobber.
@@ -70,7 +76,7 @@
         database:    'UNKNOWN',
         environment: 'dev',
         version:     '?',
-        isLive:      false,
+        isProdData:  false,
         ready:       null,   // Promise that resolves when the fetch completes
     };
 
@@ -82,7 +88,7 @@
             env.database    = data.database    ?? data.databaseName ?? 'UNKNOWN';
             env.environment = data.environment ?? 'dev';
             env.version     = data.version     ?? '?';
-            env.isLive      = env.database === 'BITBOXMRP' && env.environment !== 'dev';
+            env.isProdData  = env.database === 'BITBOXMRP' && env.environment !== 'dev';
         } catch (e) {
             console.warn('[bitbox-shim] /api/env fetch failed:', e.message);
         }
@@ -203,7 +209,7 @@
     // -------------------------------------------------------------------------
 
     window.bitbox = {
-        contractVersion: '1.1.0',
+        contractVersion: '2.0.1',
         session:         session,
         env:             env,
         api:             api,

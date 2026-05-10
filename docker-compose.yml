@@ -33,30 +33,22 @@ services:
     build:
       context: ./portal
       dockerfile: Dockerfile
-    container_name: bitbox_portal
+    container_name: bitbox_portal_staging
     ports:
       - "8081:80"
-    volumes:
-      - ./portal/backend:/app/backend   # live-mount: Python changes without rebuild
-      - ./portal/static:/app/static     # live-mount: HTML/JS changes without rebuild
     env_file: ./portal/.env
     extra_hosts:
       - "BB-DC01:172.16.1.2"
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
-  # BitBox Planner  (Python FastAPI + OR-Tools, port 8082)
+  # BitBox Planner  (Python FastAPI + OR-Tools)
   # ---------------------------------------------------------------------------
   planner:
     build:
       context: ./planner
       dockerfile: Dockerfile
-    container_name: bitbox_planner
-    ports:
-      - "8082:8000"
-    volumes:
-      - ./planner/backend:/app/backend   # live-mount: Python changes without rebuild
-      - ./planner/static:/app/static     # live-mount: JS/HTML changes without rebuild
+    container_name: bitbox_planner_staging
     # Two env files, layered. Later file wins for any duplicate key.
     #   1. portal/.env   -- the SHARED source of truth for DB_DATABASE,
     #                       APP_ENV, INTRANET_LOG_URL, LOG_API_KEY, etc.
@@ -80,18 +72,13 @@ services:
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
-  # BitBox Purchasing  (Python FastAPI, port 8084)
+  # BitBox Purchasing  (Python FastAPI)
   # ---------------------------------------------------------------------------
   purchasing:
     build:
       context: ./purchasing
       dockerfile: Dockerfile
-    container_name: bitbox_purchasing
-    ports:
-      - "8084:8000"
-    volumes:
-      - ./purchasing/backend:/app/backend   # live-mount: Python changes without rebuild
-      - ./purchasing/static:/app/static     # live-mount: JS/HTML changes without rebuild
+    container_name: bitbox_purchasing_staging
     # Two env files, layered. Later file wins for any duplicate key.
     #   1. portal/.env       -- SHARED source of truth for DB_DATABASE,
     #                           APP_ENV, INTRANET_LOG_URL, LOG_API_KEY etc.

@@ -1,6 +1,6 @@
 # Portal Host Contract — Specification
 
-**Contract version: `1.1.0`** (semver — see "Versioning rules" below)
+**Contract version: `2.0.1`** (semver — see "Versioning rules" below)
 
 This document is the **canonical, authoritative spec** of the JavaScript
 interface between the BitBox Portal (the host) and the sub-apps that run
@@ -52,11 +52,11 @@ the host is older than the sub-app requires.
 
 ---
 
-## The `window.bitbox` surface (v1.1.0)
+## The `window.bitbox` surface (v2.0.0)
 
 ```js
 window.bitbox = {
-  contractVersion: "1.1.0",       // string, always present
+  contractVersion: "2.0.0",       // string, always present
   session:         { ... },
   env:             { ... },
   api:             { ... },
@@ -102,21 +102,21 @@ Notes:
 ```js
 env: {
   database:    string,    // "SANDBOX" | "BITBOXMRP" | "BITBOX-TEST" | etc.
-  environment: string,    // "dev" | "live" | "beta" | "test"
+  environment: string,    // "dev" | "staging" | "prod" | "test"
   version:     string,    // version of whichever app is providing the host (e.g. portal version, or planner version in standalone)
-  isLive:      boolean,   // true iff database === "BITBOXMRP" AND environment !== "dev"
+  isProdData:  boolean,   // true iff database === "BITBOXMRP" AND environment !== "dev"
   ready:       Promise,   // resolves once the values above have been populated from the host
 }
 ```
 
 This shape matches the existing `/api/insight/databaseName` portal endpoint
-and the planner's `/api/env`. `isLive` is a derived convenience for
+and the planner's `/api/env`. `isProdData` is a derived convenience for
 "should I make the navbar dark and warn before destructive actions?".
 
 **Critical invariant (MUST):** the values reported in `env.database` and
 `env.environment` MUST match the database the sub-app's backend is actually
 connected to. The pill in the header is the operator-visible report of this
-invariant — if it's wrong, every "is this dev or live?" judgement made by
+invariant — if it's wrong, every "is this dev or prod?" judgement made by
 the operator that day is wrong. Implementations MUST guarantee no drift
 between the displayed value and the actual backend connection. See "Env
 handling" below for how each implementation does so.
@@ -365,9 +365,9 @@ GET /api/env  →  { "database": <string>,
   the live answer from the connection itself (the portal does this for
   `/api/insight/databaseName`).
 - `environment` MUST be the value of the canonical `APP_ENV` env var
-  (`"dev"` / `"live"` / `"beta"`). Pre-1.1.0 sub-apps used per-app names
+  (`"dev"` / `"staging"` / `"prod"`). Pre-1.1.0 sub-apps used per-app names
   (`PLANNER_ENV`, `PURCHASING_ENV`) — those were renamed to `APP_ENV` in
-  the 1.1.0 sweep.
+  the 1.1.0 sweep. Terminology was updated from "live"/"beta" to "prod"/"staging" in 2.0.0.
 - `version` MUST be the sub-app's own version string.
 
 The standalone shim populates `window.bitbox.env` from this endpoint at
@@ -406,7 +406,7 @@ into the integrated stack:
 | `DB_TRUSTED`      | `"yes"` for Windows Auth, `"no"` for SQL auth              |
 | `DB_ENCRYPT`      | `"yes"` recommended                                        |
 | `DB_TRUST_CERT`   | `"yes"` required for self-signed BB-DC01 cert              |
-| `APP_ENV`         | `"dev"` / `"live"` / `"beta"` (drives `bitbox.env.environment`) |
+| `APP_ENV`         | `"dev"` / `"staging"` / `"prod"` (drives `bitbox.env.environment`) |
 
 Other env vars (session secrets, log keys, sub-app-specific extras like
 `DB_PSCR_SQL_AUTH_*`) are not part of the contract — implementations may
@@ -416,6 +416,8 @@ name them as they wish.
 
 ## Changelog
 
+- **2.0.1** — patch. Modified `portal-shim-standalone.js` to automatically inherit `window.parent.bitbox` when running inside an iframe, allowing the purchasing iframe integration to work seamlessly with the portal host.
+- **2.0.0** — breaking. Renamed `env.isLive` to `env.isProdData`. Environment values are now `"dev"`, `"staging"`, and `"prod"` instead of `"dev"`, `"beta"`, and `"live"`.
 - **1.1.0** — additive. Adds `env.ready` to the documented `env` shape
   (already present in both implementations since 1.0.0; now formalised).
   Adds the **"Env handling"** section: standalone-mode hosts MUST expose
