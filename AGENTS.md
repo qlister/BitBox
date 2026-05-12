@@ -121,7 +121,7 @@ For developing one project in isolation, use the `docker-compose.yml`
 ### Env source-of-truth in the combined stack
 
 In the umbrella combined stack, **every** service is wired with
-`env_file: ./portal/.env` — including planner and purchasing. This is the
+`env_file: .env` — including planner and purchasing. This is the
 mechanism that satisfies the Portal Host Contract's "no-drift" invariant
 (see `PORTAL_CONTRACT.md` → "Env handling"): the database the sub-app's
 backend connects to physically cannot disagree with the database name

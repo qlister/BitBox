@@ -103,7 +103,7 @@ matter and aren't obvious from filesystem layout alone:
   stock timeline. A change to the columns of these views breaks purchasing
   at runtime, with no compile-time check.
 - **All projects → unified SQL baseline** — `planner/sql/10_create_bitbox_svc.sql`
-  creates the SQL logins (`portal_user`, `bitbox_svc`, `erp_mcp_read`) used by
+  creates the SQL logins (`bitbox_svc`, `erp_mcp_read`) used by
   *every* sub-project. The script is owned by the planner repo by historical
   accident; it could be moved to a shared location later.
 
@@ -248,7 +248,7 @@ All sub-projects connect to the same MSSQL instance:
 - **Dev DB:** `SANDBOX`. **Prod DB:** `BITBOXMRP` (production).
 - **Schemas:** `BitBoxIntranet` (portal), `BitBoxPlanner` (planner +
   purchasing reads), `BitBoxPurchasing` (purchasing).
-- **Service logins:** `portal_user`, `bitbox_svc`, `erp_mcp_read` — all
+- **Service logins:** `bitbox_svc`, `erp_mcp_read` — all
   created by the unified `planner/sql/10_create_bitbox_svc.sql` baseline.
 
 Connection details and migration history are in each sub-project's own README.

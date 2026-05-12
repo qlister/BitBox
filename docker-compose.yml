@@ -21,7 +21,7 @@
 # ERP Query Engine is a SEPARATE project (c:\Users\qlister\AI\erp_query_engine).
 # Start it independently from its own docker-compose.yml (port 8000 on the host).
 # The portal reaches it via host.docker.internal:8000 — set ERP_QUERY_URL in
-# portal/.env:  ERP_QUERY_URL=http://host.docker.internal:8000
+# .env:  ERP_QUERY_URL=http://host.docker.internal:8000
 # =============================================================================
 
 services:
@@ -36,10 +36,11 @@ services:
     container_name: bitbox_portal_staging
     ports:
       - "8081:80"
-    env_file: ./portal/.env
+    env_file: .env
     extra_hosts:
       - "BB-DC01:172.16.1.2"
     restart: unless-stopped
+    image: bb-lnx02:5000/bitbox-portal
 
   # ---------------------------------------------------------------------------
   # BitBox Planner  (Python FastAPI + OR-Tools)
@@ -49,27 +50,18 @@ services:
       context: ./planner
       dockerfile: Dockerfile
     container_name: bitbox_planner_staging
-    # Two env files, layered. Later file wins for any duplicate key.
-    #   1. portal/.env   -- the SHARED source of truth for DB_DATABASE,
-    #                       APP_ENV, INTRANET_LOG_URL, LOG_API_KEY, etc.
-    #                       This is what guarantees the env / database pill
-    #                       in the planner UI matches the database the
-    #                       planner backend is actually connected to —
-    #                       both come from the same DB_DATABASE here.
-    #   2. planner/.env  -- planner-specific overrides. Notably DB_UID /
-    #                       DB_PWD = bitbox_svc (planner needs WRITE access
-    #                       to BitBoxPlanner.* which portal_user does not).
+    # SHARED source of truth for DB_DATABASE, APP_ENV, INTRANET_LOG_URL, 
+    # LOG_API_KEY, and DB_UID (bitbox_svc) etc.
+    # This is what guarantees the env / database pill in the planner UI 
+    # matches the database the planner backend is actually connected to.
     # See PORTAL_CONTRACT.md → "Env handling" for the contract requirement.
-    # When developing planner standalone, planner/docker-compose.yml uses
-    # planner/.env on its own (it's self-contained for that purpose).
-    env_file:
-      - ./portal/.env
-      - ./planner/.env
+    env_file: .env
     extra_hosts:
       - "BB-DC01:172.16.1.2"
     depends_on:
       - portal
     restart: unless-stopped
+    image: bb-lnx02:5000/bitbox-planner
 
   # ---------------------------------------------------------------------------
   # BitBox Purchasing  (Python FastAPI)
@@ -79,23 +71,15 @@ services:
       context: ./purchasing
       dockerfile: Dockerfile
     container_name: bitbox_purchasing_staging
-    # Two env files, layered. Later file wins for any duplicate key.
-    #   1. portal/.env       -- SHARED source of truth for DB_DATABASE,
-    #                           APP_ENV, INTRANET_LOG_URL, LOG_API_KEY etc.
-    #   2. purchasing/.env   -- purchasing-specific overrides. Notably
-    #                           DB_UID / DB_PWD = bitbox_svc (write access
-    #                           to BitBoxPurchasing.*) and the
-    #                           DB_PSCR_SQL_AUTH_* `sa` workaround for
-    #                           PSCRInsertSDK (only honoured in live/beta
-    #                           — see purchasing/AGENTS.md → PSCR section).
+    # SHARED source of truth for DB_DATABASE, APP_ENV, INTRANET_LOG_URL, 
+    # LOG_API_KEY, and DB_UID (bitbox_svc) etc.
+    # This is what guarantees the env / database pill in the purchasing UI 
+    # matches the database the purchasing backend is actually connected to.
     # See PORTAL_CONTRACT.md → "Env handling" for the contract requirement.
-    # When developing purchasing standalone, purchasing/docker-compose.yml
-    # uses purchasing/.env on its own.
-    env_file:
-      - ./portal/.env
-      - ./purchasing/.env
+    env_file: .env
     extra_hosts:
       - "BB-DC01:172.16.1.2"
     depends_on:
       - portal
     restart: unless-stopped
+    image: bb-lnx02:5000/bitbox-purchasing
