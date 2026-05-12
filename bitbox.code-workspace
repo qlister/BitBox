@@ -3,6 +3,23 @@
     {
       "name": "BitBox (umbrella)",
       "path": "."
+    },
+    {
+      "name": "portal",
+      "path": "portal"
+    },
+    {
+      "name": "planner",
+      "path": "planner"
+    },
+    {
+      "name": "purchasing",
+      "path": "purchasing"
+    },
+    {
+      "name": "erp_query_engine",
+      "path": "erp_query_engine"
     }
-  ]
+  ],
+  "settings": {}
 }
