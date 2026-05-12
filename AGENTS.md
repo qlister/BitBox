@@ -13,7 +13,7 @@
 The **BitBox umbrella** — a thin orchestration repo that holds:
 
 - `bitbox.code-workspace` — multi-root Cursor workspace (5 roots).
-- `docker-compose.yml` — combined-stack orchestrator (portal + planner + purchasing).
+- `docker-compose.yml` — combined-stack orchestrator (portal + planner + purchasing + erp_query_engine).
 - `README.md` — top-level overview, cross-project couplings, port map, cloning.
 - `PORTAL_CONTRACT.md` — versioned spec for `window.bitbox.*` (the host ↔ sub-app interface).
 - `portal-shim/` — canonical standalone shim + `refresh-shims.ps1` + its own README.
@@ -109,11 +109,7 @@ than a shared module).
 
 ## Combined-stack compose
 
-`docker-compose.yml` here brings up portal + planner + purchasing together.
-`erp_query_engine` is **deliberately not** in this compose file — it's
-brought up separately from `erp_query_engine/docker-compose.yml`. The portal
-reaches it at `host.docker.internal:8000` (set `ERP_QUERY_URL` in
-`portal/.env`).
+`docker-compose.yml` here brings up portal + planner + purchasing + erp_query_engine together.
 
 For developing one project in isolation, use the `docker-compose.yml`
 *inside* that project's folder, not this one.

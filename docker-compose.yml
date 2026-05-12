@@ -1,11 +1,11 @@
 # =============================================================================
 # BitBox/docker-compose.yml
 #
-# Combined orchestrator: starts Portal, Planner, and Purchasing containers.
+# Combined orchestrator: starts Portal, Planner, Purchasing, and ERP Query Engine containers.
 #
 # Each project's Dockerfile lives in its own subfolder.
 # For developing a single project in isolation, use the docker-compose.yml
-# inside portal/, planner/, or purchasing/ respectively.
+# inside portal/, planner/, purchasing/, or erp_query_engine/ respectively.
 #
 # Usage (from the BitBox/ folder):
 #   docker-compose up --build    # first build or after Dockerfile changes
@@ -14,14 +14,13 @@
 #   docker-compose down          # stop and remove all containers
 #
 # Services:
-#   portal      → http://localhost:8081  (Python 3.12 FastAPI + uvicorn)
-#   planner     → http://localhost:8082  (Python FastAPI + OR-Tools)
-#   purchasing  → http://localhost:8084  (Python FastAPI)
+#   portal            → http://localhost:8081  (Python 3.12 FastAPI + uvicorn)
+#   planner           → http://localhost:8082  (Python FastAPI + OR-Tools)
+#   purchasing        → http://localhost:8084  (Python FastAPI)
+#   erp_query_engine  → http://localhost:8000  (Python FastAPI + Vanna + MCP)
 #
-# ERP Query Engine is a SEPARATE project (c:\Users\qlister\AI\erp_query_engine).
-# Start it independently from its own docker-compose.yml (port 8000 on the host).
-# The portal reaches it via host.docker.internal:8000 — set ERP_QUERY_URL in
-# .env:  ERP_QUERY_URL=http://host.docker.internal:8000
+# The portal reaches the ERP Query Engine via http://erp_query_engine:8000 — 
+# set ERP_QUERY_URL in .env: ERP_QUERY_URL=http://erp_query_engine:8000
 # =============================================================================
 
 services:
@@ -83,3 +82,34 @@ services:
       - portal
     restart: unless-stopped
     image: bb-lnx02:5000/bitbox-purchasing
+
+  # ---------------------------------------------------------------------------
+  # ERP Query Engine  (Python FastAPI + Vanna + MCP)
+  # ---------------------------------------------------------------------------
+  erp_query_engine:
+    build:
+      context: ./erp_query_engine
+      dockerfile: Dockerfile
+    container_name: erp-query-engine_staging
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+      - ./erp_query_engine/.env
+    environment:
+      - MSSQL_SERVER=${DB_SERVER}
+      - MSSQL_DATABASE=${DB_DATABASE}
+      - MSSQL_USER=erp_mcp_read
+      - MSSQL_PASSWORD=ErpMcpRead2026!
+    volumes:
+      # ChromaDB training data persists across container restarts
+      - erp_chromadb_data:/app/chromadb_data
+      # Training config — bind mount so edits take effect without rebuilding
+      - ./erp_query_engine/training:/app/training:ro
+    extra_hosts:
+      - "BB-DC01:172.16.1.2"
+    restart: unless-stopped
+    image: bb-lnx02:5000/erp-query-engine
+
+volumes:
+  erp_chromadb_data:

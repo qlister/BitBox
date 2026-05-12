@@ -15,7 +15,7 @@ sub-folders.
 ```
 BitBox/                          ← this repo  github.com/qlister/BitBox
 ├── bitbox.code-workspace        ← multi-root Cursor workspace (5 roots)
-├── docker-compose.yml           ← combined orchestrator (portal + planner + purchasing)
+├── docker-compose.yml           ← combined orchestrator (portal + planner + purchasing + erp_query_engine)
 ├── README.md                    ← this file
 ├── .gitignore                   ← excludes the four sub-repos so they aren't tracked here
 ├── PORTAL_CONTRACT.md           ← spec for window.bitbox.* (host ↔ sub-app interface)
@@ -176,7 +176,7 @@ AGENTS.md files because Cursor only auto-loads the local one.
 ## Combined stack — Docker Compose
 
 From this folder, the bundled `docker-compose.yml` brings up portal +
-planner + purchasing together:
+planner + purchasing + erp_query_engine together:
 
 ```powershell
 docker-compose up --build       # first build or after Dockerfile changes
@@ -185,15 +185,10 @@ docker-compose logs -f portal   # tail one container
 docker-compose down             # stop and remove all
 ```
 
-The portal container reverse-proxies `/planner/*` and `/purchasing/*` to
+The portal reverse-proxies `/planner/*` and `/purchasing/*` to
 the sibling containers, so `http://localhost:8081` is the only URL the
-operator needs.
-
-The **erp_query_engine** is **not** part of this compose file — it's
-brought up separately from `erp_query_engine/docker-compose.yml`. The
-portal reaches it at `host.docker.internal:8000` (set `ERP_QUERY_URL` in
-`portal/.env`). The engine also runs on the **BB-AIDEV** Ubuntu host as a
-LAN-shared instance — see `erp_query_engine/README.md`.
+operator needs for the UI. The **erp_query_engine** runs alongside them on 
+port `8000` and is reached directly by the portal container via `http://erp_query_engine:8000`.
 
 For developing one project in isolation, use the `docker-compose.yml`
 inside that project's folder.
