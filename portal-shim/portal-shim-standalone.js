@@ -111,9 +111,23 @@
             const url = this.base + path;
             const merged = Object.assign(
                 { credentials: 'same-origin' },
-                opts || {},
-                { headers: Object.assign({}, this.headers(), (opts && opts.headers) || {}) }
+                opts || {}
             );
+            
+            // Only add Content-Type: application/json if we are not sending FormData
+            // (FormData needs the browser to automatically set Content-Type with the boundary)
+            const isFormData = opts && opts.body && opts.body instanceof FormData;
+            
+            merged.headers = Object.assign(
+                {}, 
+                this.headers(), 
+                (opts && opts.headers) || {}
+            );
+            
+            if (isFormData && merged.headers['Content-Type'] === 'application/json') {
+                delete merged.headers['Content-Type'];
+            }
+            
             return fetch(url, merged);
         },
     };
