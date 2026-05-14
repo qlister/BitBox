@@ -26,4 +26,5 @@ pscp "C:\Users\qlister\AI\BitBox\erp_query_engine\.env" qlister@bb-lnx02:/home/q
 pscp -r "C:\Users\qlister\AI\BitBox\erp_query_engine\training" qlister@bb-lnx02:/home/qlister/erp_query_engine/
 
 Write-Host "Done! On the remote server, you can now run:"
+Write-Host "  docker-compose pull"
 Write-Host "  docker-compose up -d"
