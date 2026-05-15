@@ -101,6 +101,7 @@ services:
       - MSSQL_DATABASE=${DB_DATABASE}
       - MSSQL_USER=erp_mcp_read
       - MSSQL_PASSWORD=ErpMcpRead2026!
+      - HOST_MACHINE_NAME=${HOSTNAME:-${COMPUTERNAME:-unknown}}
     volumes:
       # ChromaDB training data persists across container restarts
       - erp_chromadb_data:/app/chromadb_data
